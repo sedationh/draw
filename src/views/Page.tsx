@@ -77,7 +77,7 @@ export default function Page({ id }: PageProps) {
 
         setName(result.data.data[0].name);
 
-        // 同时更新本地存储
+        // Update local storage simultaneously
         const updatedAt = new Date().toISOString();
         drawDataStore
           .getState()
