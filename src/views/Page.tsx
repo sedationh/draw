@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +30,7 @@ export default function Page({ id }: PageProps) {
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const { theme } = useTheme();
+  const saveTimeoutRef = useRef<number | null>(null);
 
   const { refetch, isFetching } = useQuery({
     queryKey: ["page", id],
@@ -133,6 +134,28 @@ export default function Page({ id }: PageProps) {
     }
   }, [excalidrawAPI, id, name, mutate]);
 
+  // Auto save to local storage when scene changes
+  const handleSceneChange = useCallback(
+    (elements: readonly NonDeletedExcalidrawElement[]) => {
+      if (!excalidrawAPI) return;
+
+      // Clear previous timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      // Debounce the save operation
+      saveTimeoutRef.current = window.setTimeout(() => {
+        const files = excalidrawAPI.getFiles();
+        const updatedAt = new Date().toISOString();
+
+        // Save to local storage automatically
+        drawDataStore.getState().setPageData(id, elements, updatedAt, name, files);
+      }, 500); // 500ms debounce
+    },
+    [excalidrawAPI, id, name]
+  );
+
   useEffect(() => {
     // Load data from local storage if available
     const localData = drawDataStore.getState().getPageData(id);
@@ -153,12 +176,22 @@ export default function Page({ id }: PageProps) {
     }
   }, [id, excalidrawAPI, theme]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="flex w-full flex-col">
       <div className="h-full w-full">
         <Excalidraw
           excalidrawAPI={(api) => setExcalidrawAPI(api)}
           initialData={{ appState: { theme: theme } }}
+          onChange={handleSceneChange}
           renderTopRightUI={() => (
             <div className="flex gap-2">
               <Input
