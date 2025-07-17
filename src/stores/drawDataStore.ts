@@ -2,6 +2,7 @@ import { NonDeletedExcalidrawElement } from "@excalidraw/excalidraw/element/type
 import { BinaryFiles } from "@excalidraw/excalidraw/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import localforage from "localforage";
 
 export type DrawData = {
   [page_id: string]: {
@@ -19,11 +20,12 @@ type DrawDataStore = {
     elements: readonly NonDeletedExcalidrawElement[],
     updatedAt: string,
     name: string,
-    files?: BinaryFiles,
+    files?: BinaryFiles
   ) => void;
   getPageData: (page_id: string) => DrawData[string] | undefined;
 };
 
+// ✅ Configure persist to use localForage (IndexedDB)
 const drawDataStore = create<DrawDataStore>()(
   persist(
     (set, get) => ({
@@ -48,8 +50,20 @@ const drawDataStore = create<DrawDataStore>()(
     }),
     {
       name: "draw-data-store",
-    },
-  ),
+      storage: {
+        getItem: async (name) => {
+          const value = await localforage.getItem(name);
+          return value ? JSON.parse(value as string) : null;
+        },
+        setItem: async (name, value) => {
+          await localforage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: async (name) => {
+          await localforage.removeItem(name);
+        },
+      },
+    }
+  )
 );
 
 export { drawDataStore };
