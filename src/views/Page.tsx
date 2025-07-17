@@ -107,30 +107,23 @@ export default function Page({ id }: PageProps) {
       const files = excalidrawAPI.getFiles();
       const updatedAt = new Date().toISOString();
 
-      const existingData = drawDataStore.getState().getPageData(id);
+      setIsSaving(true);
+      // Save locally first
+      drawDataStore.getState().setPageData(id, scene, updatedAt, name, files);
 
-      if (
-        JSON.stringify(existingData?.elements) !== JSON.stringify(scene) ||
-        JSON.stringify(existingData?.files) !== JSON.stringify(files)
-      ) {
-        setIsSaving(true);
-        // Save locally first
-        drawDataStore.getState().setPageData(id, scene, updatedAt, name, files);
-
-        // Then push to API
-        mutate(
-          {
-            elements: scene as NonDeletedExcalidrawElement[],
-            name,
-            files,
+      // Then push to API
+      mutate(
+        {
+          elements: scene as NonDeletedExcalidrawElement[],
+          name,
+          files,
+        },
+        {
+          onSettled() {
+            setIsSaving(false);
           },
-          {
-            onSettled() {
-              setIsSaving(false);
-            },
-          },
-        );
-      }
+        },
+      );
     }
   }, [excalidrawAPI, id, name, mutate]);
 
@@ -150,10 +143,12 @@ export default function Page({ id }: PageProps) {
         const updatedAt = new Date().toISOString();
 
         // Save to local storage automatically
-        drawDataStore.getState().setPageData(id, elements, updatedAt, name, files);
+        drawDataStore
+          .getState()
+          .setPageData(id, elements, updatedAt, name, files);
       }, 500); // 500ms debounce
     },
-    [excalidrawAPI, id, name]
+    [excalidrawAPI, id, name],
   );
 
   useEffect(() => {
