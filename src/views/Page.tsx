@@ -47,14 +47,16 @@ export default function Page({ id }: PageProps) {
       name: string;
       files?: BinaryFiles;
     }) => setDrawData(id, data.elements, data.name, data.files),
-    onSuccess: () => {
-      setIsSaving(false);
-    },
     onError: (error: Error) => {
-      setIsSaving(false);
       toast("An error occurred while saving to the server", {
         description: error.message,
       });
+    },
+    onSuccess: () => {
+      toast("Data saved to server");
+    },
+    onSettled: () => {
+      setIsSaving(false);
     },
   });
 
@@ -115,18 +117,11 @@ export default function Page({ id }: PageProps) {
       drawDataStore.getState().setPageData(id, scene, updatedAt, name, files);
 
       // Then push to API
-      mutate(
-        {
-          elements: scene as NonDeletedExcalidrawElement[],
-          name,
-          files,
-        },
-        {
-          onSettled() {
-            setIsSaving(false);
-          },
-        },
-      );
+      mutate({
+        elements: scene as NonDeletedExcalidrawElement[],
+        name,
+        files,
+      });
     }
   }, [excalidrawAPI, id, name, mutate]);
 
@@ -223,10 +218,12 @@ export default function Page({ id }: PageProps) {
               <Button
                 variant="secondary"
                 onClick={setSceneData}
-                disabled={isSaving}
+                isLoading={isSaving}
+                loadingText=""
                 size="sm"
+                className="w-12"
               >
-                {isSaving ? "Saving..." : "Save"}
+                Save
               </Button>
 
               <TooltipProvider>
