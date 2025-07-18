@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Tooltip,
@@ -19,6 +20,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { getDrawData, setDrawData } from "@/db/draw";
 import { drawDataStore } from "@/stores/drawDataStore";
+import { useAsyncEffect } from "ahooks";
 
 type PageProps = {
   id: string;
@@ -28,6 +30,7 @@ export default function Page({ id }: PageProps) {
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
   const [name, setName] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { theme } = useTheme();
   const saveTimeoutRef = useRef<number | null>(null);
@@ -128,35 +131,48 @@ export default function Page({ id }: PageProps) {
   }, [excalidrawAPI, id, name, mutate]);
 
   // Auto save to local storage when scene changes
-  const handleSceneChange = useCallback(
-    (elements: readonly NonDeletedExcalidrawElement[]) => {
-      if (!excalidrawAPI) return;
+  const handleSceneChange = (
+    elements: readonly NonDeletedExcalidrawElement[],
+  ) => {
+    if (!excalidrawAPI) return;
 
-      // Clear previous timeout
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+    // Clear previous timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
 
-      // Debounce the save operation
-      saveTimeoutRef.current = window.setTimeout(() => {
-        const files = excalidrawAPI.getFiles();
-        const updatedAt = new Date().toISOString();
+    // Debounce the save operation
+    saveTimeoutRef.current = window.setTimeout(() => {
+      console.log("handleSceneChange");
+      const files = excalidrawAPI.getFiles();
+      const updatedAt = new Date().toISOString();
 
-        // Save to local storage automatically
-        drawDataStore
-          .getState()
-          .setPageData(id, elements, updatedAt, name, files);
-      }, 500); // 500ms debounce
-    },
-    [excalidrawAPI, id, name],
-  );
+      // Save to local storage automatically
+      drawDataStore
+        .getState()
+        .setPageData(id, elements, updatedAt, name, files);
+    }, 200);
+  };
 
-  useEffect(() => {
+  useAsyncEffect(async () => {
     // Load data from local storage if available
+    if (!excalidrawAPI) {
+      return;
+    }
     const localData = drawDataStore.getState().getPageData(id);
-    if (localData && excalidrawAPI) {
+    if (!localData) {
+      toast("No local data, fetching from server", {
+        description: "This may take a while",
+      });
+      console.log("no local data, fetching from server");
+      await fetchDataFromServer();
+      setIsLoaded(true);
+    } else {
       // need to wait for excalidrawAPI to be ready
       setTimeout(() => {
+        setName(localData.name);
+        toast("Updating scene from local data");
+        console.log("updating scene from local data");
         excalidrawAPI.updateScene({
           elements: localData.elements,
           appState: { theme: theme },
@@ -165,11 +181,10 @@ export default function Page({ id }: PageProps) {
         if (localData.files && Object.keys(localData.files).length > 0) {
           excalidrawAPI.addFiles(Object.values(localData.files));
         }
+        setIsLoaded(true);
       }, 1000);
-
-      setName(localData.name);
     }
-  }, [id, excalidrawAPI, theme]);
+  }, [excalidrawAPI]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -182,7 +197,18 @@ export default function Page({ id }: PageProps) {
 
   return (
     <div className="flex w-full flex-col">
-      <div className="h-full w-full">
+      <div className="relative h-full w-full">
+        {/* Loading overlay */}
+        {isFetching ||
+          (!isLoaded && (
+            <div className="bg-background/50 absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3">
+                <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
+                <p className="text-muted-foreground text-sm">Loading...</p>
+              </div>
+            </div>
+          ))}
+
         <Excalidraw
           excalidrawAPI={(api) => setExcalidrawAPI(api)}
           initialData={{ appState: { theme: theme } }}
