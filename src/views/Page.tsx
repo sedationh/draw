@@ -199,15 +199,14 @@ export default function Page({ id }: PageProps) {
     <div className="flex w-full flex-col">
       <div className="relative h-full w-full">
         {/* Loading overlay */}
-        {isFetching ||
-          (!isLoaded && (
-            <div className="bg-background/50 absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
-              <div className="flex flex-col items-center gap-3">
-                <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
-                <p className="text-muted-foreground text-sm">Loading...</p>
-              </div>
+        {(isFetching || !isLoaded) && (
+          <div className="bg-background/50 absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3">
+              <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
+              <p className="text-muted-foreground text-sm">Loading...</p>
             </div>
-          ))}
+          </div>
+        )}
 
         <Excalidraw
           excalidrawAPI={(api) => setExcalidrawAPI(api)}
