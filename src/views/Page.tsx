@@ -154,6 +154,15 @@ export default function Page({ id }: PageProps) {
     }, 200);
   };
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
   useAsyncEffect(async () => {
     // Load data from local storage if available
     if (!excalidrawAPI) {
@@ -185,15 +194,6 @@ export default function Page({ id }: PageProps) {
       }, 1000);
     }
   }, [excalidrawAPI]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
 
   return (
     <div className="flex w-full flex-col">
