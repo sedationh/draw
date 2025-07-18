@@ -85,7 +85,7 @@ export default function Page({ id }: PageProps) {
 
         // Update local storage simultaneously
         const updatedAt = new Date().toISOString();
-        drawDataStore
+        await drawDataStore
           .getState()
           .setPageData(
             id,
@@ -114,7 +114,7 @@ export default function Page({ id }: PageProps) {
 
       setIsSaving(true);
       // Save locally first
-      drawDataStore.getState().setPageData(id, scene, updatedAt, name, files);
+      await drawDataStore.getState().setPageData(id, scene, updatedAt, name, files);
 
       // Then push to API
       mutate({
@@ -163,7 +163,7 @@ export default function Page({ id }: PageProps) {
     if (!excalidrawAPI) {
       return;
     }
-    const localData = drawDataStore.getState().getPageData(id);
+    const localData = await drawDataStore.getState().getPageData(id);
     if (!localData) {
       toast("No local data, fetching from server", {
         description: "This may take a while",

@@ -26,6 +26,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
+    "dexie": "^4.0.11",
     "hono": "^4.6.14",
     "localforage": "^1.10.0",
     "lucide-react": "^0.511.0",
